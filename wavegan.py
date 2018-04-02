@@ -159,3 +159,22 @@ class WaveGANDiscriminator(nn.Module):
             print(x.shape)
 
         return F.sigmoid(self.fc1(x))
+
+
+def load_wavegan_generator(filepath, model_size=64, ngpus=1, num_channels=1,
+                           latent_dim=100, **kwargs):
+    model = WaveGANGenerator(model_size=model_size, ngpus=ngpus,
+                             num_channels=num_channels, latent_dim=latent_dim)
+    model.load_state_dict(torch.load(filepath))
+
+    return model
+
+
+def load_wavegan_discriminator(filepath, model_size=64, ngpus=1, num_channels=1,
+                               shift_factor=2, alpha=0.2, **kwargs):
+    model = WaveGANDiscriminator(model_size=model_size, ngpus=ngpus,
+                                 num_channels=num_channels,
+                                 shift_factor=shift_factor, alpha=alpha)
+    model.load_state_dict(torch.load(filepath))
+
+    return model

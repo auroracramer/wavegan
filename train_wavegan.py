@@ -1,9 +1,16 @@
 import argparse
 import logging
+import os
+import json
+import datetime
+import torch
+import pprint
+import pickle as pk
 from sample import get_all_audio_filepaths, create_data_split
 from wavegan import WaveGANDiscriminator, WaveGANGenerator
 from wgan import train_wgan
 from log import init_console_logger
+from utils import save_samples
 
 
 LOGGER = logging.getLogger('wavegan')
@@ -24,7 +31,7 @@ def parse_arguments():
     parser.add_argument('-bs', '--batch-size', dest='batch_size', type=int, default=64, help='Batch size used for training')
     parser.add_argument('-ne', '--num-epochs', dest='num_epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('-bpe', '--batches-per-epoch', dest='batches_per_epoch', type=int, default=10, help='Batches per training epoch')
-    parser.add_argument('-ng', '--num-gpus', dest='num_gpus', type=int, default=1, help='Number of GPUs to use for training')
+    parser.add_argument('-ng', '--ngpus', dest='ngpus', type=int, default=1, help='Number of GPUs to use for training')
     parser.add_argument('-du', '--discriminator-updates', dest='discriminator_updates', type=int, default=5, help='Number of discriminator updates per training iteration')
     parser.add_argument('-ld', '--latent-dim', dest='latent_dim', type=int, default=100, help='Size of latent dimension used by generator')
     parser.add_argument('-eps', '--epochs-per-sample', dest='epochs_per_sample', type=int, default=1, help='How many epochs between every set of samples generated for inspection')
@@ -32,6 +39,7 @@ def parse_arguments():
     parser.add_argument('-rf', '--regularization-factor', dest='lmbda', type=float, default=10.0, help='Gradient penalty regularization factor')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true')
     parser.add_argument('audio_dir', type=str, help='Path to directory containing audio files')
+    parser.add_argument('output_dir', type=str, help='Path to directory where model files will be output')
     args = parser.parse_args()
     return vars(args)
 
@@ -45,8 +53,17 @@ if __name__ == '__main__':
 
     batch_size = args['batch_size']
     latent_dim = args['latent_dim']
-    ngpus = args['num_gpus']
+    ngpus = args['ngpus']
     model_size = args['model_size']
+    model_dir = os.path.join(args['output_dir'],
+                              datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    args['model_dir'] = model_dir
+
+    LOGGER.info('Saving configurations...')
+    config_path = os.path.join(model_dir, 'config.json')
+    with open(config_path, 'w') as f:
+        json.dump(args, f)
+
 
     # Try on some training data
     LOGGER.info('Loading audio data...')
@@ -75,5 +92,29 @@ if __name__ == '__main__':
         latent_dim=latent_dim,
         epochs_per_sample=args['epochs_per_sample'],
         sample_size=args['sample_size'])
+
+    LOGGER.info('Finished training.')
+
+    LOGGER.info('Final discriminator loss on validation and test:')
+    LOGGER.info(pprint.pformat(final_discr_metrics))
+
+    LOGGER.info('Saving models...')
+    model_gen_output_path = os.path.join(model_dir, "model_gen.pkl")
+    model_dis_output_path = os.path.join(model_dir, "model_dis.pkl")
+    torch.save(model_gen.state_dict(), model_gen_output_path,
+               pickle_protocol=pk.HIGHEST_PROTOCOL)
+    torch.save(model_dis.state_dict(), model_dis_output_path,
+               pickle_protocol=pk.HIGHEST_PROTOCOL)
+
+    LOGGER.info('Saving metrics...')
+    history_output_path = os.path.join(model_dir, "history.pkl")
+    final_discr_metrics_output_path = os.path.join(model_dir, "final_discr_metrics.pkl")
+    with open(history_output_path, 'wb') as f:
+        pk.dump(history, f)
+    with open(final_discr_metrics_output_path, 'wb') as f:
+        pk.dump(final_discr_metrics, f)
+
+    LOGGER.info('Saving samples...')
+    save_samples(samples, model_dir)
 
     LOGGER.info('Done!')
