@@ -25,6 +25,7 @@ module load cudnn/8.0v6.0
 python $SRCDIR/train_wavegan.py \
     --model-size 64 \
     --phase-shuffle-shift-factor 2 \
+    --post-proc-filt-len 512 \
     --lrelu-alpha 0.2 \
     --valid-ratio 0.1 \
     --test-ratio 0.1 \

@@ -40,12 +40,14 @@ class PhaseShuffle(nn.Module):
 
 
 class WaveGANGenerator(nn.Module):
-    def __init__(self, model_size=64, ngpus=1, num_channels=1, latent_dim=100, verbose=False):
+    def __init__(self, model_size=64, ngpus=1, num_channels=1, latent_dim=100,
+                 post_proc_filt_len=512, verbose=False):
         super(WaveGANGenerator, self).__init__()
         self.ngpus = ngpus
         self.model_size = model_size # d
         self.num_channels = num_channels # c
         self.latent_dim = latent_dim
+        self.post_proc_filt_len = post_proc_filt_len
         self.verbose = verbose
 
         self.fc1 = nn.DataParallel(nn.Linear(latent_dim, 256 * model_size))
@@ -65,6 +67,9 @@ class WaveGANGenerator(nn.Module):
         self.tconv5 = nn.DataParallel(
             nn.ConvTranspose1d(model_size, num_channels, 25, stride=4, padding=11,
                                output_padding=1))
+
+        if post_proc_filt_len:
+            self.ppfilter1 = nn.DataParallel(nn.Conv1d(num_channels, num_channels, post_proc_filt_len))
 
         for m in self.modules():
             if isinstance(m, nn.ConvTranspose1d) or isinstance(m, nn.Linear):
@@ -96,6 +101,18 @@ class WaveGANGenerator(nn.Module):
         output = F.tanh(self.tconv5(x))
         if self.verbose:
             print(output.shape)
+
+        if self.post_proc_filter_len:
+            # Pad for "same" filtering
+            if (self.post_proc_filt_len % 2) == 0:
+                pad_left = self.post_proc_filt_len // 2
+                pad_right = pad_left - 1
+            else:
+                pad_left = (self.post_proc_filt_len - 1) // 2
+                pad_right = pad_left
+            output = self.ppfilter1(F.pad(output, (pad_left, pad_right)))
+            if self.verbose:
+                print(output.shape)
 
         return output
 
@@ -162,9 +179,10 @@ class WaveGANDiscriminator(nn.Module):
 
 
 def load_wavegan_generator(filepath, model_size=64, ngpus=1, num_channels=1,
-                           latent_dim=100, **kwargs):
+                           latent_dim=100, post_proc_filt_len=512, **kwargs):
     model = WaveGANGenerator(model_size=model_size, ngpus=ngpus,
-                             num_channels=num_channels, latent_dim=latent_dim)
+                             num_channels=num_channels, latent_dim=latent_dim,
+                             post_proc_filt_len=post_proc_filt_len)
     model.load_state_dict(torch.load(filepath))
 
     return model
