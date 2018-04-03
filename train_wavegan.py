@@ -60,13 +60,14 @@ if __name__ == '__main__':
                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     args['model_dir'] = model_dir
 
+    # Create output directory
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
     LOGGER.info('Saving configurations...')
     config_path = os.path.join(model_dir, 'config.json')
     with open(config_path, 'w') as f:
         json.dump(args, f)
-
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
 
     # Try on some training data
     LOGGER.info('Loading audio data...')
