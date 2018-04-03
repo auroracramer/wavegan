@@ -65,6 +65,8 @@ if __name__ == '__main__':
     with open(config_path, 'w') as f:
         json.dump(args, f)
 
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
 
     # Try on some training data
     LOGGER.info('Loading audio data...')
