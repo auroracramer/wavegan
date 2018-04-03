@@ -92,6 +92,7 @@ if __name__ == '__main__':
         num_epochs=args['num_epochs'],
         batches_per_epoch=args['batches_per_epoch'],
         batch_size=batch_size,
+        output_dir=model_dir,
         lmbda=args['lmbda'],
         use_cuda=ngpus>=1,
         discriminator_updates=args['discriminator_updates'],
@@ -119,8 +120,5 @@ if __name__ == '__main__':
         pk.dump(history, f)
     with open(final_discr_metrics_output_path, 'wb') as f:
         pk.dump(final_discr_metrics, f)
-
-    LOGGER.info('Saving samples...')
-    save_samples(samples, model_dir)
 
     LOGGER.info('Done!')

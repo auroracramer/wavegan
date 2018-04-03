@@ -2,6 +2,7 @@ import logging
 import torch
 from torch import autograd
 from torch import optim
+from utils import save_samples
 import numpy as np
 import pprint
 
@@ -128,7 +129,7 @@ def calc_gradient_penalty(model_dis, real_data, fake_data, batch_size, lmbda, us
 
 # Adapted from https://github.com/caogang/wgan-gp/blob/master/gan_toy.py
 def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
-               num_epochs, batches_per_epoch, batch_size,
+               num_epochs, batches_per_epoch, batch_size, output_dir=None,
                lmbda=0.1, use_cuda=True, discriminator_updates=5, epochs_per_sample=10,
                sample_size=20, lr=1e-4, beta_1=0.5, beta_2=0.9, latent_dim=100):
 
@@ -245,10 +246,15 @@ def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
 
         if (epoch + 1) % epochs_per_sample == 0:
             # Generate outputs for fixed latent samples
+            LOGGER.info('Generating samples...')
             samp_output = model_gen(sample_noise_v)
             if use_cuda:
                 samp_output = samp_output.cpu()
-            samples[epoch] = samp_output.data.numpy()
+
+            samples[epoch+1] = samp_output.data.numpy()
+            if output_dir:
+                LOGGER.info('Saving samples...')
+                save_samples(samples[epoch+1], epoch+1, output_dir)
 
     ## Get final discriminator loss
     # Get noise
