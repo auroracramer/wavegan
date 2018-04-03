@@ -38,6 +38,6 @@ python $SRCDIR/train_wavegan.py \
     --epochs-per-sample 1 \
     --sample-size 20 \
     --regularization-factor 10.0 \
-    --verbose
+    --verbose \
     $AUDIO_DIR \
     $OUTPUT_DIR \
