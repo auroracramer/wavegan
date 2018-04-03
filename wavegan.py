@@ -102,7 +102,7 @@ class WaveGANGenerator(nn.Module):
         if self.verbose:
             print(output.shape)
 
-        if self.post_proc_filter_len:
+        if self.post_proc_filt_len:
             # Pad for "same" filtering
             if (self.post_proc_filt_len % 2) == 0:
                 pad_left = self.post_proc_filt_len // 2
