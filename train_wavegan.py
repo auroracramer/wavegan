@@ -28,7 +28,7 @@ def parse_arguments():
     parser.add_argument('-ppfl', '--post-proc-filt-len', dest='post_proc_filt_len', type=int, default=512, help='Length of post processing filter used by generator. Set to 0 to disable.')
     parser.add_argument('-lra', '--lrelu-alpha', dest='alpha', type=float, default=0.2, help='Slope of negative part of LReLU used by discriminator')
     parser.add_argument('-vr', '--valid-ratio', dest='valid_ratio', type=float, default=0.1, help='Ratio of audio files used for validation')
-    parser.add_argument('-tr', '--test-ratio', dest='valid_ratio', type=float, default=0.1, help='Ratio of audio files used for testing')
+    parser.add_argument('-tr', '--test-ratio', dest='test_ratio', type=float, default=0.1, help='Ratio of audio files used for testing')
     parser.add_argument('-bs', '--batch-size', dest='batch_size', type=int, default=64, help='Batch size used for training')
     parser.add_argument('-ne', '--num-epochs', dest='num_epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('-bpe', '--batches-per-epoch', dest='batches_per_epoch', type=int, default=10, help='Batches per training epoch')
