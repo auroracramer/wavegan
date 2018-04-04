@@ -62,7 +62,7 @@ def get_all_audio_filepaths(audio_dir):
     return [os.path.join(root, fname)
             for (root, dir_names, file_names) in os.walk(audio_dir)
             for fname in file_names
-            if (fname.lower().endswith('.wav') or fname.lower().endswith('mp3'))]
+            if (fname.lower().endswith('.wav') or fname.lower().endswith('.mp3'))]
 
 
 def create_data_split(audio_filepath_list, valid_ratio, test_ratio,
