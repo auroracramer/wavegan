@@ -16,6 +16,7 @@ def file_sample_generator(filepath, window_length=16384, fs=16000):
     try:
         audio_data, _ = librosa.load(filepath, sr=fs)
     except Exception as e:
+        LOGGER.error('Could not load {}: {}'.format(filepath, str(e)))
         raise StopIteration()
 
     audio_len = len(audio_data)
