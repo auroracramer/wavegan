@@ -48,7 +48,7 @@ def file_sample_generator(filepath, window_length=16384, fs=16000):
 def create_batch_generator(audio_filepath_list, batch_size):
     streamers = []
     for audio_filepath in audio_filepath_list:
-        s = pescador.Streamer(file_sample_generator, audio_filepath)
+        s = pescador.Streamer(file_sample_generator, audio_filepath).cycle()
         streamers.append(s)
 
     mux = pescador.ShuffledMux(streamers)
