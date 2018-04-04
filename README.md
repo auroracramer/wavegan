@@ -5,8 +5,8 @@ A PyTorch reimplementation of WaveGAN
 
 
 ### Setup
-This code requires Python 3, along with the following packages (which can be
-installed with `conda`  or `pip`):
+This code requires Python 3 and `ffmpeg` (which can be installed with `conda`),
+along with the following packages (which can be installed with `conda`  or `pip`):
 * `pytorch`
 * `numpy`
 * `librosa`
