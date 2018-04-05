@@ -38,6 +38,9 @@ def parse_arguments():
     parser.add_argument('-eps', '--epochs-per-sample', dest='epochs_per_sample', type=int, default=1, help='How many epochs between every set of samples generated for inspection')
     parser.add_argument('-ss', '--sample-size', dest='sample_size', type=int, default=20, help='Number of inspection samples generated')
     parser.add_argument('-rf', '--regularization-factor', dest='lmbda', type=float, default=10.0, help='Gradient penalty regularization factor')
+    parser.add_argument('-lr', '--learning-rate', dest='learning_rate', type=float, default=1e-4, help='Initial ADAM learning rate')
+    parser.add_argument('-bo', '--beta-one', dest='beta1', type=float, default=0.5, help='beta_1 ADAM parameter')
+    parser.add_argument('-bt', '--beta-two', dest='beta2', type=float, default=0.9, help='beta_2 ADAM parameter')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true')
     parser.add_argument('audio_dir', type=str, help='Path to directory containing audio files')
     parser.add_argument('output_dir', type=str, help='Path to directory where model files will be output')
@@ -93,6 +96,9 @@ if __name__ == '__main__':
         batches_per_epoch=args['batches_per_epoch'],
         batch_size=batch_size,
         output_dir=model_dir,
+        lr=args['learning_rate'],
+        beta_1=args['beta1'],
+        beta_2=args['beta2'],
         lmbda=args['lmbda'],
         use_cuda=ngpus>=1,
         discriminator_updates=args['discriminator_updates'],
