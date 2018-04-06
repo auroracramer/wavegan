@@ -18,7 +18,7 @@ class PhaseShuffle(nn.Module):
 
     def forward(self, x):
         # Make sure to use PyTorch to generate number RNG state is all shared
-        k = int(torch.Tensor(1).random_(0, self.shift_factor + 1)) - 5
+        k = int(torch.Tensor(1).random_(0, 2*self.shift_factor + 1)) - self.shift_factor
 
         # Return if no phase shift
         if k == 0:
