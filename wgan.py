@@ -144,7 +144,7 @@ def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
                                betas=(beta_1, beta_2))
 
     # Sample noise used for seeing the evolution of generated output samples throughout training
-    sample_noise = torch.Tensor(batch_size, latent_dim).uniform_(-1, 1)
+    sample_noise = torch.Tensor(sample_size, latent_dim).uniform_(-1, 1)
     if use_cuda:
         sample_noise = sample_noise.cuda()
     sample_noise_v = autograd.Variable(sample_noise)
