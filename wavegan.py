@@ -27,10 +27,10 @@ class PhaseShuffle(nn.Module):
         # Slice feature dimension
         if k > 0:
             x_trunc = x[:, :, :-k]
-            pad = (0, k)
+            pad = (k, 0)
         else:
             x_trunc = x[:, :, -k:]
-            pad = (-k, 0)
+            pad = (0, -k)
 
         # Reflection padding
         x_shuffle = F.pad(x_trunc, pad, mode='reflect')
