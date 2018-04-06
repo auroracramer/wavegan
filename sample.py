@@ -15,6 +15,11 @@ def file_sample_generator(filepath, window_length=16384, fs=16000):
     """
     try:
         audio_data, _ = librosa.load(filepath, sr=fs)
+
+        # Clip amplitude
+        max_amp = np.max(np.abs(audio_data))
+        if max_amp > 1:
+            audio_data /= max_amp
     except Exception as e:
         LOGGER.error('Could not load {}: {}'.format(filepath, str(e)))
         raise StopIteration()
