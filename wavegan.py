@@ -50,21 +50,24 @@ class PhaseShuffle(nn.Module):
                 - self.shift_factor
             k_list = k_list.numpy().astype(int)
 
+            # Combine sample indices into lists so that less shuffle operations
+            # need to be performed
+            k_map = {}
+            for idx, k in enumerate(k_list):
+                k = int(k)
+                if k not in k_map:
+                    k_map[k] = []
+                k_map[k].append(idx)
+
             # Make a copy of x for our output
             x_shuffle = x.clone()
 
             # Apply shuffle to each sample
-            for idx, k in enumerate(k_list):
-                k = int(k)
+            for k, idxs in k_map.items():
                 if k > 0:
-                    xi_trunc = x[idx:idx+1, :, :-k]
-                    pad = (k, 0)
+                    x_shuffle[idxs] = F.pad(x[idxs][..., :-k], (k,0), mode='reflect')
                 else:
-                    xi_trunc = x[idx:idx+1, :, -k:]
-                    pad = (0, -k)
-
-                x_shuffle[idx:idx+1] = F.pad(xi_trunc, pad, mode='reflect')
-
+                    x_shuffle[idxs] = F.pad(x[idxs][..., -k:], (0,-k), mode='reflect')
 
         assert x_shuffle.shape == x.shape, "{}, {}".format(x_shuffle.shape,
                                                            x.shape)
