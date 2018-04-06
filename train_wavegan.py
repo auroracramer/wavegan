@@ -25,6 +25,7 @@ def parse_arguments():
 
     parser.add_argument('-ms', '--model-size', dest='model_size', type=int, default=64, help='Model size parameter used in WaveGAN')
     parser.add_argument('-pssf', '--phase-shuffle-shift-factor', dest='shift_factor', type=int, default=2, help='Maximum shift used by phase shuffle')
+    parser.add_argument('-psb', '--phase-shuffle-batchwise', dest='batch_shuffle', action='store_true', help='If true, apply phase shuffle to entire batches rather than individual samples')
     parser.add_argument('-ppfl', '--post-proc-filt-len', dest='post_proc_filt_len', type=int, default=512, help='Length of post processing filter used by generator. Set to 0 to disable.')
     parser.add_argument('-lra', '--lrelu-alpha', dest='alpha', type=float, default=0.2, help='Slope of negative part of LReLU used by discriminator')
     parser.add_argument('-vr', '--valid-ratio', dest='valid_ratio', type=float, default=0.1, help='Ratio of audio files used for validation')
@@ -83,7 +84,8 @@ if __name__ == '__main__':
     model_gen = WaveGANGenerator(model_size=model_size, ngpus=ngpus, latent_dim=latent_dim,
                                  post_proc_filt_len=args['post_proc_filt_len'])
     model_dis = WaveGANDiscriminator(model_size=model_size, ngpus=ngpus,
-                                     alpha=args['alpha'])
+                                     alpha=args['alpha'], shift_factor=args['shift_factor'],
+                                     batch_shuffle=args['batch_shuffle'])
 
     LOGGER.info('Starting training...')
     model_gen, model_dis, history, final_discr_metrics, samples = train_wgan(

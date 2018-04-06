@@ -10,30 +10,62 @@ class PhaseShuffle(nn.Module):
     Performs phase shuffling, i.e. shifting feature axis of a 3D tensor
     by a random integer in {-n, n} and performing reflection padding where
     necessary
+
+    If batch shuffle is enabled, only a single shuffle is applied to the entire
+    batch, rather than each sample in the batch.
     """
 
-    def __init__(self, shift_factor):
+    def __init__(self, shift_factor, batch_shuffle=False):
         super(PhaseShuffle, self).__init__()
         self.shift_factor = shift_factor
+        self.batch_shuffle = batch_shuffle
 
     def forward(self, x):
-        # Make sure to use PyTorch to generate number RNG state is all shared
-        k = int(torch.Tensor(1).random_(0, 2*self.shift_factor + 1)) - self.shift_factor
-
-        # Return if no phase shift
-        if k == 0:
+        # Return x if phase shift is disabled
+        if self.shift_factor == 0:
             return x
 
-        # Slice feature dimension
-        if k > 0:
-            x_trunc = x[:, :, :-k]
-            pad = (k, 0)
-        else:
-            x_trunc = x[:, :, -k:]
-            pad = (0, -k)
+        if self.batch_shuffle:
+            # Make sure to use PyTorcTrueh to generate number RNG state is all shared
+            k = int(torch.Tensor(1).random_(0, 2*self.shift_factor + 1)) - self.shift_factor
 
-        # Reflection padding
-        x_shuffle = F.pad(x_trunc, pad, mode='reflect')
+            # Return if no phase shift
+            if k == 0:
+                return x
+
+            # Slice feature dimension
+            if k > 0:
+                x_trunc = x[:, :, :-k]
+                pad = (k, 0)
+            else:
+                x_trunc = x[:, :, -k:]
+                pad = (0, -k)
+
+            # Reflection padding
+            x_shuffle = F.pad(x_trunc, pad, mode='reflect')
+
+        else:
+            # Generate shifts for each sample in the batch
+            k_list = torch.Tensor(x.shape[0]).random_(0, 2*self.shift_factor+1)\
+                - self.shift_factor
+            k_list = k_list.numpy().astype(int)
+
+            # Make a copy of x for our output
+            x_shuffle = x.clone()
+
+            # Apply shuffle to each sample
+            for idx, k in enumerate(k_list):
+                k = int(k)
+                if k > 0:
+                    xi_trunc = x[idx:idx+1, :, :-k]
+                    pad = (k, 0)
+                else:
+                    xi_trunc = x[idx:idx+1, :, -k:]
+                    pad = (0, -k)
+
+                x_shuffle[idx:idx+1] = F.pad(xi_trunc, pad, mode='reflect')
+
+
         assert x_shuffle.shape == x.shape, "{}, {}".format(x_shuffle.shape,
                                                            x.shape)
         return x_shuffle
@@ -118,7 +150,7 @@ class WaveGANGenerator(nn.Module):
 
 
 class WaveGANDiscriminator(nn.Module):
-    def __init__(self, model_size=64, ngpus=1, num_channels=1, shift_factor=2, alpha=0.2, verbose=False):
+    def __init__(self, model_size=64, ngpus=1, num_channels=1, shift_factor=2, alpha=0.2, batch_shuffle=False, verbose=False):
         super(WaveGANDiscriminator, self).__init__()
         self.model_size = model_size # d
         self.ngpus = ngpus
@@ -136,10 +168,10 @@ class WaveGANDiscriminator(nn.Module):
             nn.Conv1d(4 * model_size, 8 * model_size, 25, stride=4, padding=11))
         self.conv5 = nn.DataParallel(
             nn.Conv1d(8 * model_size, 16 * model_size, 25, stride=4, padding=11))
-        self.ps1 = PhaseShuffle(shift_factor)
-        self.ps2 = PhaseShuffle(shift_factor)
-        self.ps3 = PhaseShuffle(shift_factor)
-        self.ps4 = PhaseShuffle(shift_factor)
+        self.ps1 = PhaseShuffle(shift_factor, batch_shuffle=batch_shuffle)
+        self.ps2 = PhaseShuffle(shift_factor, batch_shuffle=batch_shuffle)
+        self.ps3 = PhaseShuffle(shift_factor, batch_shuffle=batch_shuffle)
+        self.ps4 = PhaseShuffle(shift_factor, batch_shuffle=batch_shuffle)
         self.fc1 = nn.DataParallel(nn.Linear(256 * model_size, 1))
 
         for m in self.modules():
