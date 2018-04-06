@@ -73,7 +73,7 @@ def compute_gener_loss_terms(model_dis, model_gen, batch_size, latent_dim,
     model_gen.zero_grad()
 
     # Sample from the generator
-    noise = torch.randn(batch_size, latent_dim)
+    noise = torch.Tensor(batch_size, latent_dim).uniform_(-1, 1)
     if use_cuda:
         noise = noise.cuda()
     noise_v = autograd.Variable(noise)
@@ -144,7 +144,7 @@ def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
                                betas=(beta_1, beta_2))
 
     # Sample noise used for seeing the evolution of generated output samples throughout training
-    sample_noise = torch.randn(sample_size, latent_dim)
+    sample_noise = torch.Tensor(batch_size, latent_dim).uniform_(-1, 1)
     if use_cuda:
         sample_noise = sample_noise.cuda()
     sample_noise_v = autograd.Variable(sample_noise)
@@ -181,7 +181,7 @@ def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
                 real_data_v = np_to_input_var(next(train_iter)['X'], use_cuda)
 
                 # Get noise
-                noise = torch.randn(batch_size, latent_dim)
+                noise = torch.Tensor(batch_size, latent_dim).uniform_(-1, 1)
                 if use_cuda:
                     noise = noise.cuda()
                 noise_v = autograd.Variable(noise,
@@ -258,7 +258,7 @@ def train_wgan(model_gen, model_dis, train_gen, valid_data, test_data,
 
     ## Get final discriminator loss
     # Get noise
-    noise = torch.randn(batch_size, latent_dim)
+    noise = torch.Tensor(batch_size, latent_dim).uniform_(-1, 1)
     if use_cuda:
         noise = noise.cuda()
     noise_v = autograd.Variable(noise,
