@@ -81,7 +81,7 @@ class UpsampleConvLayer(torch.nn.Module):
         if upsample:
             self.upsample_layer = torch.nn.Upsample(scale_factor=upsample)
             reflection_padding = kernel_size // 2
-            self.reflection_pad = ConstantPad1d(reflection_padding)
+            self.reflection_pad = torch.nn.ConstantPad1d(reflection_padding, value = 0)
 #             self.reflection_pad = torch.nn.ReflectionPad1d(reflection_padding)
             self.conv1d = torch.nn.Conv1d(in_channels, out_channels, kernel_size, stride)
 

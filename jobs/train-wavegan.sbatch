@@ -39,7 +39,7 @@ python $SRCDIR/train_wavegan.py \
     --latent-dim 100 \
     --epochs-per-sample 1 \
     --sample-size 20 \
-    --learning-rate 0.0001 \
+    --learning-rate 0.000001 \
     --beta-one 0.5 \
     --beta-two 0.9 \
     --regularization-factor 10.0 \
