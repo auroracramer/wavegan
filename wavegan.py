@@ -74,9 +74,28 @@ class PhaseShuffle(nn.Module):
         return x_shuffle
 
 
+class UpsampleConvLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, upsample=None):
+        super(UpsampleConvLayer, self).__init__()
+        self.upsample = upsample
+        if upsample:
+            self.upsample_layer = torch.nn.Upsample(scale_factor=upsample)
+            reflection_padding = kernel_size // 2
+            self.reflection_pad = ConstantPad1d(reflection_padding)
+#             self.reflection_pad = torch.nn.ReflectionPad1d(reflection_padding)
+            self.conv1d = torch.nn.Conv1d(in_channels, out_channels, kernel_size, stride)
+
+    def forward(self, x):
+        x_in = x
+        if self.upsample:
+            x_in = self.upsample_layer(x_in)
+        out = self.reflection_pad(x_in)
+        out = self.conv1d(out)
+        return out
+
 class WaveGANGenerator(nn.Module):
     def __init__(self, model_size=64, ngpus=1, num_channels=1, latent_dim=100,
-                 post_proc_filt_len=512, verbose=False):
+                 post_proc_filt_len=512, verbose=False, upsample=True):
         super(WaveGANGenerator, self).__init__()
         self.ngpus = ngpus
         self.model_size = model_size # d
@@ -86,22 +105,50 @@ class WaveGANGenerator(nn.Module):
         self.verbose = verbose
 
         self.fc1 = nn.DataParallel(nn.Linear(latent_dim, 256 * model_size))
-
-        self.tconv1 = nn.DataParallel(
-            nn.ConvTranspose1d(16 * model_size, 8 * model_size, 25, stride=4, padding=11,
-                               output_padding=1))
-        self.tconv2 = nn.DataParallel(
-            nn.ConvTranspose1d(8 * model_size, 4 * model_size, 25, stride=4, padding=11,
-                               output_padding=1))
-        self.tconv3 = nn.DataParallel(
-            nn.ConvTranspose1d(4 * model_size, 2 * model_size, 25, stride=4, padding=11,
-                               output_padding=1))
-        self.tconv4 = nn.DataParallel(
-            nn.ConvTranspose1d(2 * model_size, model_size, 25, stride=4, padding=11,
-                               output_padding=1))
-        self.tconv5 = nn.DataParallel(
-            nn.ConvTranspose1d(model_size, num_channels, 25, stride=4, padding=11,
-                               output_padding=1))
+        
+        self.tconv1 = None
+        self.tconv2 = None
+        self.tconv3 = None
+        self.tconv4 = None
+        self.tconv5 = None
+        
+                
+        self.upSampConv1 = None
+        self.upSampConv2 = None
+        self.upSampConv3 = None
+        self.upSampConv4 = None
+        self.upSampConv5 = None
+        
+        self.upsample = upsample
+    
+        if self.upsample:
+            self.upSampConv1 = nn.DataParallel(
+                UpsampleConvLayer(16 * model_size, 8 * model_size, 25, stride=1, upsample=4))
+            self.upSampConv2 = nn.DataParallel(
+                UpsampleConvLayer(8 * model_size, 4 * model_size, 25, stride=1, upsample=4))
+            self.upSampConv3 = nn.DataParallel(
+                UpsampleConvLayer(4 * model_size, 2 * model_size, 25, stride=1, upsample=4))
+            self.upSampConv4 = nn.DataParallel(
+                UpsampleConvLayer(2 * model_size, model_size, 25, stride=1, upsample=4))
+            self.upSampConv5 = nn.DataParallel(
+                UpsampleConvLayer(model_size, num_channels, 25, stride=1, upsample=4))
+            
+        else:
+            self.tconv1 = nn.DataParallel(
+                nn.ConvTranspose1d(16 * model_size, 8 * model_size, 25, stride=4, padding=11,
+                                   output_padding=1))
+            self.tconv2 = nn.DataParallel(
+                nn.ConvTranspose1d(8 * model_size, 4 * model_size, 25, stride=4, padding=11,
+                                   output_padding=1))
+            self.tconv3 = nn.DataParallel(
+                nn.ConvTranspose1d(4 * model_size, 2 * model_size, 25, stride=4, padding=11,
+                                   output_padding=1))
+            self.tconv4 = nn.DataParallel(
+                nn.ConvTranspose1d(2 * model_size, model_size, 25, stride=4, padding=11,
+                                   output_padding=1))
+            self.tconv5 = nn.DataParallel(
+                nn.ConvTranspose1d(model_size, num_channels, 25, stride=4, padding=11,
+                                   output_padding=1))
 
         if post_proc_filt_len:
             self.ppfilter1 = nn.DataParallel(nn.Conv1d(num_channels, num_channels, post_proc_filt_len))
@@ -114,26 +161,47 @@ class WaveGANGenerator(nn.Module):
 
         x = self.fc1(x).view(-1, 16 * self.model_size, 16)
         x = F.relu(x)
+        output = None
         if self.verbose:
             print(x.shape)
+        
+        if self.upsample:
+            x = F.relu(self.upSampConv1(x))
+            if self.verbose:
+                print(x.shape)
 
-        x = F.relu(self.tconv1(x))
-        if self.verbose:
-            print(x.shape)
+            x = F.relu(self.upSampConv2(x))
+            if self.verbose:
+                print(x.shape)
 
-        x = F.relu(self.tconv2(x))
-        if self.verbose:
-            print(x.shape)
+            x = F.relu(self.upSampConv3(x))
+            if self.verbose:
+                print(x.shape)
 
-        x = F.relu(self.tconv3(x))
-        if self.verbose:
-            print(x.shape)
+            x = F.relu(self.upSampConv4(x))
+            if self.verbose:
+                print(x.shape)
 
-        x = F.relu(self.tconv4(x))
-        if self.verbose:
-            print(x.shape)
+            output = F.tanh(self.upSampConv5(x))
+        else:
+            x = F.relu(self.tconv1(x))
+            if self.verbose:
+                print(x.shape)
 
-        output = F.tanh(self.tconv5(x))
+            x = F.relu(self.tconv2(x))
+            if self.verbose:
+                print(x.shape)
+
+            x = F.relu(self.tconv3(x))
+            if self.verbose:
+                print(x.shape)
+
+            x = F.relu(self.tconv4(x))
+            if self.verbose:
+                print(x.shape)
+
+            output = F.tanh(self.tconv5(x))
+            
         if self.verbose:
             print(output.shape)
 
@@ -150,6 +218,7 @@ class WaveGANGenerator(nn.Module):
                 print(output.shape)
 
         return output
+
 
 
 class WaveGANDiscriminator(nn.Module):

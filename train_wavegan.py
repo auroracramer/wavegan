@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     LOGGER.info('Creating models...')
     model_gen = WaveGANGenerator(model_size=model_size, ngpus=ngpus, latent_dim=latent_dim,
-                                 post_proc_filt_len=args['post_proc_filt_len'])
+                                 post_proc_filt_len=args['post_proc_filt_len'], upsample=True)
     model_dis = WaveGANDiscriminator(model_size=model_size, ngpus=ngpus,
                                      alpha=args['alpha'], shift_factor=args['shift_factor'],
                                      batch_shuffle=args['batch_shuffle'])
