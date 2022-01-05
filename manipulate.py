@@ -92,6 +92,7 @@ if __name__ == '__main__':
     random_range = args['random_range']
     output_dir = Path(args['output_dir'])
     num_epochs = args['num_epochs']
+    use_cuda = ngpus >= 1
     #load model
     model_gen = WaveGANGenerator(model_size=model_size,
                                  ngpus=ngpus,
@@ -107,16 +108,18 @@ if __name__ == '__main__':
         noise_v = get_random_z(Q_num_categ,
                                batch_size,
                                latent_dim,
-                               use_cuda=ngpus >= 1,
+                               use_cuda=use_cuda,
                                random_range=random_range)
+        latent_v = noise_v.data.numpy()
+        with open(output_dir / "latent_v" / f"{epoch}.pickle", 'wb') as fout:
+            pickle.dump(latent_v)
+        if use_cuda:
+            noise_v = noise_v.cuda()
+        # Generate outputs for fixed latent samples
+        samp_output = model_gen.forward(noise_v)
+        if use_cuda:
+            samp_output = samp_output.cpu()
 
-        if (epoch + 1) % epochs_per_sample == 0:
-            # Generate outputs for fixed latent samples
-            samp_output = model_gen.forward(sample_noise_v)
-            if ngpus >= 1:
-                samp_output = samp_output.cpu()
-
-            samples[epoch + 1] = samp_output.data.numpy()
-            if output_dir:
-                save_samples(samples[epoch + 1], epoch + 1,
-                             output_dir / "Audio")
+        samples[epoch + 1] = samp_output.data.numpy()
+        if output_dir:
+            save_samples(samples[epoch + 1], epoch + 1, output_dir / "Audio")
