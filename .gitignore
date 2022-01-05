@@ -4,3 +4,6 @@
 *.out
 *.err
 __pycache__
+setTwo/
+output/
+sbatch/

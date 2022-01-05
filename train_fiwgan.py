@@ -7,8 +7,8 @@ import torch
 import pprint
 import pickle as pk
 from sample import get_all_audio_filepaths, create_data_split, create_dataset
-from wavegan import WaveGANDiscriminator, WaveGANGenerator
-from wgan import train_wgan
+from wavegan import WaveGANDiscriminator, WaveGANGenerator, WaveGANQ
+from wgan import train_wgan, train_wganQ
 from log import init_console_logger
 from utils import save_samples
 from pathlib import Path
@@ -145,6 +145,11 @@ def parse_arguments():
         '--output_dir',
         type=str,
         help='Path to directory where model files will be output')
+    parser.add_argument('--num_categ',
+                        dest='num_categ',
+                        type=int,
+                        default=3,
+                        help='Number of categorical variables')
 
     parser.add_argument('--job_id', type=str)
     args = parser.parse_args()
@@ -196,11 +201,19 @@ if __name__ == '__main__':
                                      shift_factor=args['shift_factor'],
                                      batch_shuffle=args['batch_shuffle'],
                                      verbose=args["verbose"])
+    model_Q = WaveGANQ(model_size=model_size,
+                       ngpus=ngpus,
+                       alpha=args['alpha'],
+                       shift_factor=args['shift_factor'],
+                       batch_shuffle=args['batch_shuffle'],
+                       verbose=args["verbose"],
+                       num_categ=args['num_categ'])
 
     LOGGER.info('Starting training...')
-    model_gen, model_dis, history, final_discr_metrics, samples = train_wgan(
+    model_gen, model_dis, model_Q, history, final_discr_metrics, samples = train_wganQ(
         model_gen=model_gen,
         model_dis=model_dis,
+        model_Q=model_Q,
         train_gen=train_gen,
         valid_data=valid_data,
         test_data=test_data,
@@ -208,6 +221,7 @@ if __name__ == '__main__':
         batches_per_epoch=args['batches_per_epoch'],
         batch_size=batch_size,
         output_dir=model_dir,
+        Q_num_categ=args['num_categ'],
         lr=args['learning_rate'],
         beta_1=args['beta1'],
         beta_2=args['beta2'],
@@ -226,11 +240,15 @@ if __name__ == '__main__':
     LOGGER.info('Saving models...')
     model_gen_output_path = model_dir / "model_gen.pkl"
     model_dis_output_path = model_dir / "model_dis.pkl"
+    model_Q_output_path = model_dir / "model_Q.pkl"
     torch.save(model_gen.state_dict(),
                model_gen_output_path,
                pickle_protocol=pk.HIGHEST_PROTOCOL)
     torch.save(model_dis.state_dict(),
                model_dis_output_path,
+               pickle_protocol=pk.HIGHEST_PROTOCOL)
+    torch.save(model_Q.state_dict(),
+               model_Q_output_path,
                pickle_protocol=pk.HIGHEST_PROTOCOL)
 
     LOGGER.info('Saving metrics...')
