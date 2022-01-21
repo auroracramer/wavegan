@@ -464,5 +464,5 @@ class WaveGANQ(nn.Module):
         if self.verbose:
             print(x.shape)
 
-        #x = torch.sigmoid(x)
+        x = torch.sigmoid(x)
         return x

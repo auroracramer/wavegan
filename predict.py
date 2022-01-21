@@ -1,4 +1,4 @@
-from wgan import get_random_z, get_manipulate_z
+from wgan import get_random_z
 import argparse
 from wavegan import WaveGANDiscriminator, WaveGANGenerator, WaveGANQ
 import os
@@ -8,6 +8,7 @@ from tqdm import trange
 import pickle
 
 
+##use the selected model to generate 3600 sounds
 def save_samples(epoch_samples, epoch, output_dir, fs=16000):
     import matplotlib.pyplot as plt
     import numpy as np
@@ -126,11 +127,11 @@ if __name__ == '__main__':
     #Starting: analyze the model
     samples = {}
     for epoch in trange(num_epochs):
-        noise_v = get_manipulate_z(Q_num_categ,
-                                   batch_size,
-                                   latent_dim,
-                                   use_cuda=use_cuda,
-                                   random_range=random_range)
+        noise_v = get_random_z(Q_num_categ,
+                               batch_size,
+                               latent_dim,
+                               use_cuda=use_cuda,
+                               random_range=random_range)
         latent_v = noise_v.cpu().data.numpy()
         (model_dir / "latent_v").mkdir(parents=True, exist_ok=True)
         with open(model_dir / "latent_v" / f"{epoch}.pickle", 'wb') as fout:

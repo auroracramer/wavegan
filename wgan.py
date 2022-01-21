@@ -39,6 +39,32 @@ def get_random_z(
     return noise_v
 
 
+def get_manipulate_z(
+    wavegan_cate: int,
+    batch_size,
+    latent_dim,
+    with_grad: bool = True,
+    use_cuda: bool = True,
+    random_range=1,
+):
+    noise = torch.Tensor(batch_size,
+                         latent_dim).uniform_(-random_range, random_range)
+    noise[:, 40] = 11
+    sec = noise[:, :wavegan_cate]
+    sec[sec > 0] = 1
+    sec[sec <= 0] = 0
+    #noise[:,:wavegan_cate] =sec
+
+    if use_cuda:
+        noise = noise.cuda()
+    if (with_grad):
+        noise_v = autograd.Variable(noise)
+    else:
+        with torch.no_grad():
+            noise_v = autograd.Variable(noise)
+    return noise_v
+
+
 def compute_discr_loss_terms(model_dis: WaveGANDiscriminator,
                              model_gen: WaveGANGenerator,
                              real_data_v,
@@ -136,6 +162,23 @@ def compute_q_loss_terms(model_gen: WaveGANGenerator,
     #Q = torch.sigmoid_cross
     #pass
     return Q_loss
+
+
+def compute_batch_fft_difference(real_data, fake_data):
+    #print(int(real_data.shape[-1] / 2))
+    fft_real = torch.fft.fft(real_data)[:, :, :int(real_data.shape[-1] / 2)]
+    fft_fake = torch.fft.fft(fake_data)[:, :, :int(real_data.shape[-1] / 2)]
+
+    mean_fft_real = torch.mean(fft_real, dim=0)
+    mean_fft_fake = torch.mean(fft_fake, dim=0)
+    #print(f"fft_real {fft_real.shape}")
+    #print(f"fft_fake {fft_fake.shape}")
+    #print(f"mean_fft_real {mean_fft_real.shape}")
+    #print(f"mean_fft_fake {mean_fft_fake.shape}")
+
+    diff = torch.sum((mean_fft_real - mean_fft_fake)**2).real
+    print(f"diff {diff}")
+    #input()
 
 
 def compute_gener_loss_terms(model_dis: WaveGANDiscriminator,
@@ -374,6 +417,7 @@ def train_wgan(model_gen: WaveGANGenerator,
                                               latent_dim,
                                               use_cuda,
                                               compute_grads=True)
+
             optimizer_gen.step()
 
             if use_cuda:
@@ -609,18 +653,23 @@ def train_wganQ(model_gen: WaveGANGenerator,
             for p in model_Q.parameters():
                 p.requires_grad = True
 
-            G_cost = compute_gener_loss_terms(model_dis,
-                                              model_gen,
-                                              batch_size,
-                                              latent_dim,
-                                              use_cuda,
-                                              wavegan_cate=Q_num_categ,
-                                              compute_grads=True)
+            G_cost = compute_gener_loss_terms(
+                model_dis,
+                model_gen,
+                batch_size,
+                latent_dim,
+                use_cuda,
+                wavegan_cate=Q_num_categ,
+                compute_grads=True,
+            )
             optimizer_gen.step()
 
             if use_cuda:
                 G_cost = G_cost.cpu()
-
+            compute_batch_fft_difference(
+                real_data_v,
+                model_gen.forward(noise_v),
+            )
             # Record generator loss
             batch_history['generator']['cost'] = G_cost.data.numpy()[0]
             Q_cost = compute_q_loss_terms(model_gen,
